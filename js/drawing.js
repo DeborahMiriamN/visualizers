@@ -1,5 +1,6 @@
 'use strict';
 
+//This is the main drawing manager
 class DrawingMgr {  
   constructor(canvas) {
     this.canvas    = canvas;
