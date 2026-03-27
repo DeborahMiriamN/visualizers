@@ -1,52 +1,24 @@
-/**
- * app.js — App: main orchestrator.
- *
- * Wires together DrawingMgr, GestureMgr, HudMgr and ModeMachine.
- * Runs the rAF animation loop and translates confirmed gestures into
- * drawing/pan/zoom/undo/erase actions.
- *
- * Also exposes a small public API used by toolbar buttons in index.html:
- *   App.eraseAll()
- *   App.undo()
- *   App.resetView()
- *   App.save()
- *
- * Depends on (loaded before this file):
- *   config.js, palette.js, smoother.js, transform.js,
- *   mode-machine.js, drawing.js, gesture.js, hud.js
- */
 'use strict';
 
-const App = (() => {
-
-  // ─── Module instances ────────────────────────────────────
+const App = (() => {  
   const drawing = new DrawingMgr(document.getElementById('mainCanvas'));
   const hud     = new HudMgr();
   const mode    = new ModeMachine();
-
-  // ─── Runtime state ───────────────────────────────────────
+  
   let lastHandData = { hands: [], count: 0, confidence: 0 };
   let cursorSS     = null;   // screen-space cursor position (or null)
   let pinchActive  = false;
   let panActive    = false;
-
-  // Per-gesture one-shot debounce flags (prevent repeated triggers
-  // while a confirmed gesture is held).
+  
   let lastConfirmedErase = false;
   let lastConfirmedRock  = false;
-
-  // FPS counter
+  
   let fps = 0, fpsFrames = 0, fpsLast = performance.now();
-
-  // Seed the canvas with sample shapes on first load
-  drawing.seedDemoPolygons();
-
-  // ══════════════════════════════════════════════
-  //  ANIMATION LOOP
-  // ══════════════════════════════════════════════
+ 
+  drawing.seedDemoPolygons(); 
 
   function loop(ts) {
-    // FPS calculation (sampled every 500 ms)
+    
     fpsFrames++;
     const elapsed = ts - fpsLast;
     if (elapsed >= 500) {
@@ -56,8 +28,7 @@ const App = (() => {
     }
 
     processGestures(lastHandData);
-
-    // Pass hold progress from the primary hand to the cursor arc renderer
+    
     const holdProgress = lastHandData.hands[0]?.holdProgress ?? 0;
     drawing.render(cursorSS, mode.is('drawing'), holdProgress);
 
@@ -73,36 +44,24 @@ const App = (() => {
 
     requestAnimationFrame(loop);
   }
-
-  /** Build a human-readable gesture label for the HUD stats card. */
+  
   function _gestureLabel() {
     const { hands } = lastHandData;
     if (!hands.length) return '—';
     return hands.map(h => h.gesture.toUpperCase()).join(' + ');
   }
-
-  // ══════════════════════════════════════════════
-  //  GESTURE → ACTION PROCESSOR
-  // ══════════════════════════════════════════════
-
-  /**
-   * Translate the latest hand data into drawing/view actions.
-   * Called once per rAF frame, before rendering.
-   * @param {{ hands: Object[], count: number }} param0
-   */
+  
   function processGestures({ hands, count }) {
     const tr = drawing.transform;
     cursorSS = count > 0 ? { ...hands[0].smoothed } : null;
-
-    // ── Two-hand operations ──────────────────────────────
+   
     if (count === 2) {
       const g0 = hands[0].gesture;
       const g1 = hands[1].gesture;
 
       const canPinch = g => g === 'pinch' || g === 'open';
       const isOpen   = g => g === 'open';
-
-      // Pinch-zoom: either hand in pinch or open
+      
       if (canPinch(g0) && canPinch(g1)) {
         const p1 = hands[0].smoothed;
         const p2 = hands[1].smoothed;
@@ -117,8 +76,7 @@ const App = (() => {
       } else {
         if (pinchActive) { tr.endPinch(); pinchActive = false; }
       }
-
-      // Two-hand pan: both hands open
+      
       if (isOpen(g0) && isOpen(g1)) {
         const cx = (hands[0].smoothed.x + hands[1].smoothed.x) / 2;
         const cy = (hands[0].smoothed.y + hands[1].smoothed.y) / 2;
@@ -132,13 +90,10 @@ const App = (() => {
         if (panActive) { tr.endPan(); panActive = false; }
       }
 
-    } else {
-      // Clean up two-hand gestures if we dropped below 2 hands
-      if (pinchActive) { tr.endPinch(); pinchActive = false; }
-      // Don't reset panActive here — single-hand open-grab may continue panning
+    } else {      
+      if (pinchActive) { tr.endPinch(); pinchActive = false; }     
     }
-
-    // ── No hands detected ───────────────────────────────
+    
     if (count === 0) {
       if (mode.is('drawing')) drawing.finalizeDraft();
       mode.to('passive');
@@ -146,14 +101,12 @@ const App = (() => {
       lastConfirmedRock  = false;
       return;
     }
-
-    // ── Single-hand operations ───────────────────────────
+    
     const h  = hands[0];
-    const g  = h.gesture;    // raw (immediate) gesture
-    const gc = h.confirmed;  // hysteresis-debounced gesture
-    const sp = h.smoothed;   // smoothed screen-space position
-
-    // ERASE — fist (confirmed, one-shot)
+    const g  = h.gesture;
+    const gc = h.confirmed;
+    const sp = h.smoothed;
+    
     if (gc === 'fist') {
       if (!lastConfirmedErase) {
         lastConfirmedErase = true;
@@ -167,7 +120,7 @@ const App = (() => {
       lastConfirmedErase = false;
     }
 
-    // UNDO — rock-on (confirmed, one-shot)
+    
     if (gc === 'rockon') {
       if (!lastConfirmedRock) {
         lastConfirmedRock = true;
@@ -180,7 +133,7 @@ const App = (() => {
       lastConfirmedRock = false;
     }
 
-    // FINALIZE — peace sign
+    
     if (g === 'peace') {
       if (mode.is('drawing') && drawing.draft.length >= 3) {
         drawing.finalizeDraft();
@@ -190,9 +143,7 @@ const App = (() => {
       return;
     }
 
-    // DRAW — pointing finger
-    // Enter drawing with the confirmed gesture to reduce accidental starts,
-    // then keep drawing while either raw or confirmed stays on point.
+    
     const drawActive = mode.is('drawing')
       ? (g === 'point' || gc === 'point')
       : (gc === 'point');
@@ -202,10 +153,7 @@ const App = (() => {
       mode.to('drawing');
       return;
     }
-
-    // GRAB / PAN — open hand
-    // Use the wrist landmark as the anchor point: it's the most stable
-    // part of the hand and doesn't jump around like fingertips do.
+    
     if (g === 'open') {
       if (mode.is('drawing')) {
         drawing.finalizeDraft();
@@ -223,21 +171,15 @@ const App = (() => {
       mode.to('panning');
       return;
     }
-
-    // Gesture left 'open' — release the pan anchor
+    
     if (panActive) { tr.endPan(); panActive = false; }
-
-    // Unknown / transitional gesture — finalize any open draft and go passive
+    
     if (mode.is('drawing')) {
       drawing.finalizeDraft();
       hud.flashGesture('✅ SAVED');
     }
     mode.to('passive');
-  }
-
-  // ══════════════════════════════════════════════
-  //  STARTUP
-  // ══════════════════════════════════════════════
+  }  
 
   async function start() {
     const fill = document.getElementById('ldFill');
@@ -265,19 +207,14 @@ const App = (() => {
       msg.textContent = '⚠ ' + err.message;
       return;
     }
-
-    // Fade out loading screen
+    
     const ld = document.getElementById('loading');
     ld.style.transition = 'opacity 0.65s ease';
     ld.style.opacity    = '0';
     setTimeout(() => { ld.style.display = 'none'; }, 750);
 
     requestAnimationFrame(loop);
-  }
-
-  // ══════════════════════════════════════════════
-  //  PUBLIC API (used by toolbar buttons)
-  // ══════════════════════════════════════════════
+  }  
 
   return {
     start,
@@ -296,11 +233,7 @@ const App = (() => {
     resetView() {
       drawing.transform.reset();
     },
-
-    /**
-     * Export the current canvas state as a PNG download.
-     * Composites the rendered main canvas onto a clean export canvas.
-     */
+    
     save() {
       const exportCanvas = document.createElement('canvas');
       exportCanvas.width  = drawing.canvas.width;
@@ -320,5 +253,4 @@ const App = (() => {
 
 })();
 
-// Kick everything off
 App.start().catch(console.error);
