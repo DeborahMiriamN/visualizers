@@ -1,5 +1,6 @@
 'use strict';
 
+//Here we controll the top left Hud
 class HudMgr {
   constructor() {    
     this._badge  = document.getElementById('modeBadge');
