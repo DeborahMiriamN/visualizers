@@ -1,5 +1,5 @@
 'use strict';
-
+// Defined all the color pelletes
 const PALETTES = [
   { stroke: '#00f5d4', fill: 'rgba(0,245,212,0.06)'   },
   { stroke: '#ffd60a', fill: 'rgba(255,214,10,0.06)'  },
