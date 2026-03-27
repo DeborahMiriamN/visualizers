@@ -1,5 +1,7 @@
 'use strict';
 
+
+//Here are the global configs
 const Config = Object.freeze({  
   SMOOTH_ALPHA:      0.16,
   SMOOTH_ALPHA_FAST: 0.38,
