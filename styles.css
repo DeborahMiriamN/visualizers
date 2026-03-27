@@ -1,50 +1,36 @@
-/* ══════════════════════════════════════════════
-   GestureBoard — styles.css
-   Design: Refined dark minimal. Single warm accent.
-   Fonts: DM Mono (data) + DM Sans (UI) + Bebas Neue (display)
-   ══════════════════════════════════════════════ */
-
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ─── Reset ─── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* ─── Design Tokens ─── */
-:root {
-  /* Surface */
+:root {  
   --bg:        #0e0e0e;
   --surface:   #161616;
   --surface-2: #1e1e1e;
-
-  /* Borders */
+  
   --border:    rgba(255, 255, 255, 0.06);
   --border-md: rgba(255, 255, 255, 0.10);
-
-  /* Text */
+  
   --text:      #e6e2dc;
   --text-2:    #8a857e;
   --text-3:    #4a4642;
-
-  /* Accent — warm amber, used sparingly */
+  
   --accent:      #e8a04a;
   --accent-dim:  rgba(232, 160, 74, 0.10);
   --accent-line: rgba(232, 160, 74, 0.30);
+  
+  --draw:  #c8b97a;  
+  --erase: #b07070;  
+  --pan:   #7a90a8;  
 
-  /* State colours — desaturated, functional only */
-  --draw:  #c8b97a;   /* warm straw  */
-  --erase: #b07070;   /* muted rose  */
-  --pan:   #7a90a8;   /* cool slate  */
-
-  /* Typography */
+  
   --mono:    'DM Mono', monospace;
   --sans:    'DM Sans', sans-serif;
   --display: 'Bebas Neue', sans-serif;
-
-  /* Elevation */
+  
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 24px rgba(0,0,0,0.5);
   --shadow-lg: 0 8px 48px rgba(0,0,0,0.7);
@@ -63,9 +49,6 @@ body {
 }
 
 
-/* ══════════════════════════════════════════════
-   CANVAS
-   ══════════════════════════════════════════════ */
 #mainCanvas {
   position: fixed;
   inset: 0;
@@ -76,9 +59,6 @@ body {
 }
 
 
-/* ══════════════════════════════════════════════
-   CAMERA PANEL
-   ══════════════════════════════════════════════ */
 #camWrap {
   position: fixed;
   bottom: 24px;
@@ -115,7 +95,6 @@ body {
   pointer-events: none;
 }
 
-/* Thin live indicator — bottom edge of camera panel */
 .cam-badge {
   position: absolute;
   bottom: 0;
@@ -167,10 +146,6 @@ body {
   50%       { opacity: 0.25; }
 }
 
-
-/* ══════════════════════════════════════════════
-   HUD — LEFT PANEL
-   ══════════════════════════════════════════════ */
 #hudLeft {
   position: fixed;
   top: 24px;
@@ -238,7 +213,6 @@ body {
 .hud-v.c-purple  { color: var(--pan); }
 
 
-/* ─── Mode Badge ─── */
 #modeBadge {
   display: inline-flex;
   align-items: center;
@@ -289,9 +263,6 @@ body {
 #modeBadge.mode-pan::before { background: var(--pan); }
 
 
-/* ══════════════════════════════════════════════
-   GESTURE LEGEND — RIGHT PANEL
-   ══════════════════════════════════════════════ */
 #legend {
   position: fixed;
   top: 24px;
@@ -354,10 +325,6 @@ body {
   margin-bottom: 0px;
 }
 
-
-/* ══════════════════════════════════════════════
-   GESTURE FLASH OVERLAY
-   ══════════════════════════════════════════════ */
 #gFlash {
   position: fixed;
   top: 50%;
@@ -380,9 +347,6 @@ body {
 }
 
 
-/* ══════════════════════════════════════════════
-   STATUS BAR — BOTTOM LEFT
-   ══════════════════════════════════════════════ */
 #statusBar {
   position: fixed;
   bottom: 24px;
@@ -419,9 +383,6 @@ body {
 }
 
 
-/* ══════════════════════════════════════════════
-   WATCHDOG WARNING
-   ══════════════════════════════════════════════ */
 #watchdogWarn {
   position: fixed;
   top: 50%;
@@ -445,9 +406,6 @@ body {
 #watchdogWarn.visible { display: block; }
 
 
-/* ══════════════════════════════════════════════
-   LOADING SCREEN
-   ══════════════════════════════════════════════ */
 #loading {
   position: fixed;
   inset: 0;
@@ -503,10 +461,6 @@ body {
   min-height: 14px;
 }
 
-
-/* ══════════════════════════════════════════════
-   BOTTOM TOOLBAR
-   ══════════════════════════════════════════════ */
 #toolbar {
   position: fixed;
   bottom: 24px;

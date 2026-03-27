@@ -1,46 +1,23 @@
-/**
- * drawing.js — DrawingMgr: owns all canvas rendering and polygon state.
- *
- * Responsibilities:
- *   - Manages the main drawing canvas and an offscreen polygon cache layer.
- *   - Stores finalized polygons and the current in-progress draft.
- *   - Provides an undo stack.
- *   - Renders: background grid → cached polygons → live draft → cursor.
- *   - Exposes a TransformMgr instance so the App can read/write pan & zoom.
- */
 'use strict';
 
-class DrawingMgr {
-  /**
-   * @param {HTMLCanvasElement} canvas  The main full-screen canvas element.
-   */
+class DrawingMgr {  
   constructor(canvas) {
     this.canvas    = canvas;
     this.ctx       = canvas.getContext('2d', { alpha: false });
     this.transform = new TransformMgr();
-
-    // ─── State ─────────────────────────────────────────────
-    this.polygons  = [];   // finalized polygon list
-    this.draft     = [];   // current in-progress vertex list
+    
+    this.polygons  = []; 
+    this.draft     = []; 
     this.inDraft   = false;
     this.undoStack = [];
-
-    // ─── Visual effect state ────────────────────────────────
-    this._eraseFlash = null;   // { startTime, duration }
-    this._snapActive = false;  // true when cursor is near draft origin
+    
+    this._eraseFlash = null; 
+    this._snapActive = false;
 
     this._resize();
     window.addEventListener('resize', () => this._resize());
   }
-
-  // ══════════════════════════════════════════════
-  //  DRAFT MANAGEMENT
-  // ══════════════════════════════════════════════
-
-  /**
-   * Add a world-space point to the current draft.
-   * Points closer than Config.MIN_MOVE are ignored.
-   */
+ 
   addDraftPt(wx, wy) {
     if (!this.inDraft) {
       this.inDraft = true;
@@ -51,8 +28,7 @@ class DrawingMgr {
       this.draft.push({ x: wx, y: wy });
     }
   }
-
-  /** Close the draft into a finalized polygon (if enough vertices). */
+  
   finalizeDraft() {
     if (this.draft.length >= Config.MIN_VERTS) {
       this._saveUndo();
@@ -61,83 +37,60 @@ class DrawingMgr {
         pts:    [...this.draft],
         stroke: p.stroke,
         fill:   p.fill,
-        open:   true,   // never auto-close the path
+        open:   true,
       });
     }
     this.draft       = [];
     this.inDraft     = false;
     this._snapActive = false;
   }
-
-  /** Discard the current draft without saving. */
+  
   cancelDraft() {
     this.draft       = [];
     this.inDraft     = false;
     this._snapActive = false;
   }
-
-  // ══════════════════════════════════════════════
-  //  UNDO / ERASE
-  // ══════════════════════════════════════════════
-
-  /** Pop the last undo snapshot. */
+ 
   undo() {
     if (this.undoStack.length) {
       this.polygons   = this.undoStack.pop();
     }
     this.cancelDraft();
   }
-
-  /** Clear all polygons (pushes to undo stack first). */
+ 
   eraseAll() {
     this._saveUndo();
     this.polygons   = [];
     this.cancelDraft();
   }
-
-  /** Trigger an animated red flash effect over the canvas. */
+  
   flashErase() {
     this._eraseFlash = { startTime: performance.now(), duration: 400 };
   }
-
-  // ══════════════════════════════════════════════
-  //  RENDER — called every rAF frame
-  // ══════════════════════════════════════════════
-
-  /**
-   * @param {{ x, y } | null} cursorSS  Screen-space cursor position (or null).
-   * @param {boolean}         drawing   True when the mode is 'drawing'.
-   * @param {number}          holdProgress  0–1; drives the hold-confirmation arc on the cursor.
-   */
+ 
   render(cursorSS, drawing, holdProgress = 0) {
     const ctx = this.ctx;
     const W   = this.canvas.width;
     const H   = this.canvas.height;
     const now = performance.now();
-
-    // 1. Background fill
+    
     ctx.resetTransform();
     ctx.fillStyle = '#0e0e0e';
     ctx.fillRect(0, 0, W, H);
-
-    // 2. World-aligned infinite grid
+    
     this._drawWorldGrid(ctx, W, H);
-
-    // 3. Apply world transform — everything from here is in world space
+    
     this.transform.apply(ctx);
-
-    // 4. Draw all finalized polygons directly under the world transform
-    //    so they zoom and pan correctly with the canvas
+    
     for (const poly of this.polygons) {
       this._renderPoly(ctx, poly.pts, poly.stroke, poly.fill, poly.open ?? false);
     }
-
-    // 5. In-progress draft polygon + preview line
+    
     if (this.draft.length > 0) {
       const pal = currentPalette();
       this._renderPoly(ctx, this.draft, pal.stroke, pal.fill, /* open */ true);
 
-      // Dashed preview line: last draft vertex → cursor
+      
       if (cursorSS) {
         const targetW = this.transform.toWorld(cursorSS.x, cursorSS.y);
         const last    = this.draft[this.draft.length - 1];
@@ -153,11 +106,9 @@ class DrawingMgr {
         ctx.setLineDash([]);
       }
     }
-
-    // 6. Screen-space overlays (no world transform)
+    
     ctx.resetTransform();
-
-    // Animated erase flash
+    
     if (this._eraseFlash) {
       const elapsed = now - this._eraseFlash.startTime;
       const t = Math.max(0, 1 - elapsed / this._eraseFlash.duration);
@@ -168,30 +119,16 @@ class DrawingMgr {
         this._eraseFlash = null;
       }
     }
-
-    // 7. Cursor
+    
     if (cursorSS) {
       this._renderCursor(ctx, cursorSS.x, cursorSS.y, drawing, holdProgress);
     }
   }
-
-  // ══════════════════════════════════════════════
-  //  DEMO SEED
-  // ══════════════════════════════════════════════
-
-  /**
-   * Draw "GESTUREBOARD" in a hand-drawn stroke style as the initial canvas art.
-   *
-   * Each letter is defined as one or more strokes (arrays of [x,y] in a
-   * 0-6 wide x 0-8 tall grid). The helper scales them to fill the viewport
-   * and pushes each stroke as an open polygon so nothing auto-closes.
-   */
+  
   seedDemoPolygons() {
     const W = window.innerWidth;
     const H = window.innerHeight;
-
-    // Letter definitions on a 0-6 x 0-8 unit grid.
-    // Each letter is an array of strokes; each stroke is [[x,y], ...].
+    
     const GLYPHS = {
       G: [[[5,1],[3,0],[1,0],[0,2],[0,6],[1,8],[3,8],[5,8],[5,5],[3,5]]],
       E: [[[5,0],[0,0],[0,8],[5,8]], [[0,4],[4,4]]],
@@ -208,12 +145,11 @@ class DrawingMgr {
     const word1 = ['G','E','S','T','U','R','E'];
     const word2 = ['B','O','A','R','D'];
 
-    const GLYPH_W  = 7;   // units per character (6 wide + 1 gap)
+    const GLYPH_W  = 7;
     const TOTAL_W1 = word1.length * GLYPH_W;
     const TOTAL_W2 = word2.length * GLYPH_W;
     const TOTAL_W  = Math.max(TOTAL_W1, TOTAL_W2);
-
-    // Scale so the longer word fills ~82% of viewport width
+    
     const scale  = (W * 0.82) / TOTAL_W;
     const lineH  = 8 * scale;
     const gap    = lineH * 0.55;
@@ -251,29 +187,18 @@ class DrawingMgr {
     pushWord(word1, startY,               x1);
     pushWord(word2, startY + lineH + gap, x2);
   }
-
-  // ══════════════════════════════════════════════
-  //  PRIVATE HELPERS
-  // ══════════════════════════════════════════════
-
-  /** Sync canvas size on window resize. */
+ 
   _resize() {
     this.canvas.width  = window.innerWidth;
     this.canvas.height = window.innerHeight;
   }
-
-  /** Push a deep-copy snapshot onto the undo stack. */
+  
   _saveUndo() {
     this.undoStack.push(
       this.polygons.map(p => ({ ...p, pts: [...p.pts] }))
     );
   }
-
-  /**
-   * Check whether the cursor is within snap radius of the draft's first vertex.
-   * Sets this._snapActive and returns a boolean.
-   * @param {{ x, y } | null} cursorSS
-   */
+  
   _checkSnap(cursorSS) {
     if (!cursorSS || this.draft.length < 3) {
       this._snapActive = false;
@@ -284,18 +209,14 @@ class DrawingMgr {
     this._snapActive = dist < Config.SNAP_RADIUS;
     return this._snapActive;
   }
-
-  // ─── World-aligned grid ──────────────────────────────────
-
-  /** Draw an infinite grid that moves and scales with the world transform. */
+ 
   _drawWorldGrid(ctx, W, H) {
     const s    = this.transform.scale;
     const tx   = this.transform.tx;
     const ty   = this.transform.ty;
-    const base = 52;       // world-space grid cell size in px
-    const step = base * s; // screen-space cell size
-
-    // Skip grid at extreme zoom levels to avoid thousands of lines
+    const base = 52; 
+    const step = base * s;
+    
     if (step < 6 || step > 800) return;
 
     const offX = ((tx % step) + step) % step;
@@ -315,8 +236,7 @@ class DrawingMgr {
       ctx.lineTo(W, Math.round(y) + 0.5);
     }
     ctx.stroke();
-
-    // Intersection dots — batched into a single path for performance
+    
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.beginPath();
     for (let x = offX - step; x < W + step; x += step) {
@@ -328,21 +248,10 @@ class DrawingMgr {
     ctx.fill();
   }
 
-  // ─── Polygon renderer ────────────────────────────────────
-
-  /**
-   * Draw a polygon (filled + stroked) with vertex dots.
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {{ x, y }[]}              pts     Vertex array
-   * @param {string}                  stroke  CSS color for stroke/dots
-   * @param {string}                  fill    CSS color for fill
-   * @param {boolean}                 open    If true, don't close the path
-   */
   _renderPoly(ctx, pts, stroke, fill, open) {
     if (pts.length < 2) return;
 
-    const s  = this.transform.scale;
-    // Clamp line width: always visible regardless of zoom level
+    const s  = this.transform.scale;    
     const lw = Math.max(0.5, Math.min(2.5, 1.5 / s));
 
     ctx.beginPath();
@@ -358,8 +267,7 @@ class DrawingMgr {
     ctx.lineJoin    = 'round';
     ctx.lineCap     = 'round';
     ctx.stroke();
-
-    // Vertex dots — single batched path
+   
     const r = Math.max(1, 2.8 / s);
     ctx.fillStyle = stroke;
     ctx.beginPath();
@@ -368,8 +276,7 @@ class DrawingMgr {
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     }
     ctx.fill();
-
-    // Dashed closing-indicator ring around the first vertex (draft only)
+    
     if (open && pts.length >= Config.MIN_VERTS) {
       const r2 = 6 / s;
       ctx.beginPath();
@@ -381,17 +288,7 @@ class DrawingMgr {
       ctx.setLineDash([]);
     }
   }
-
-  // ─── Cursor renderer ─────────────────────────────────────
-
-  /**
-   * Draw the custom cursor with a hold-confirmation progress arc.
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {number}  sx            Screen X
-   * @param {number}  sy            Screen Y
-   * @param {boolean} drawing       Colours the cursor yellow when drawing
-   * @param {number}  holdProgress  0–1; fills the arc as gesture is confirmed
-   */
+ 
   _renderCursor(ctx, sx, sy, drawing, holdProgress) {
     const color = drawing ? '#ffd60a' : '#00f5d4';
     const glow  = drawing ? 'rgba(255,214,10,0.3)' : 'rgba(0,245,212,0.3)';
@@ -399,8 +296,7 @@ class DrawingMgr {
 
     ctx.save();
     ctx.translate(sx, sy);
-
-    // Radial glow ring
+    
     const grad = ctx.createRadialGradient(0, 0, R - 1, 0, 0, R + 8);
     grad.addColorStop(0, glow);
     grad.addColorStop(1, 'transparent');
@@ -408,8 +304,7 @@ class DrawingMgr {
     ctx.arc(0, 0, R + 8, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-
-    // Hold-progress arc (drawn beneath the main ring)
+    
     if (holdProgress > 0) {
       ctx.beginPath();
       ctx.arc(0, 0, R + 4, -Math.PI / 2, -Math.PI / 2 + holdProgress * Math.PI * 2);
@@ -419,16 +314,14 @@ class DrawingMgr {
       ctx.stroke();
       ctx.globalAlpha  = 1;
     }
-
-    // Main ring
+   
     ctx.beginPath();
     ctx.arc(0, 0, R, 0, Math.PI * 2);
     ctx.strokeStyle = color;
     ctx.lineWidth   = 1.5;
     ctx.globalAlpha = 0.9;
     ctx.stroke();
-
-    // Cross-hair lines
+   
     ctx.lineWidth   = 1;
     ctx.globalAlpha = 0.55;
     ctx.strokeStyle = color;
@@ -438,8 +331,7 @@ class DrawingMgr {
     ctx.moveTo(0, -R * 1.8); ctx.lineTo(0, -R * 0.45);
     ctx.moveTo(0,  R * 0.45); ctx.lineTo(0,  R * 1.8);
     ctx.stroke();
-
-    // Centre dot
+   
     ctx.globalAlpha = 1;
     ctx.beginPath();
     ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
