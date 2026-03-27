@@ -1,5 +1,6 @@
 'use strict';
 
+// Dedicated the smoother transitions for the coordinate shift
 class PointerSmoother { 
   constructor(alpha = Config.SMOOTH_ALPHA) {
     this._alpha = alpha;
