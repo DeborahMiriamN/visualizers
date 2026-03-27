@@ -1,10 +1,3 @@
-/**
- * palette.js — Color palette cycling for drawn polygons.
- *
- * Public API:
- *   currentPalette()  → { stroke, fill }
- *   toggleColorCycle()  → advances to next palette and updates toolbar dot
- */
 'use strict';
 
 const PALETTES = [
@@ -17,15 +10,10 @@ const PALETTES = [
 
 let _paletteIdx = 0;
 
-/** Returns the currently active stroke/fill palette. */
 function currentPalette() {
   return PALETTES[_paletteIdx];
 }
 
-/**
- * Advances to the next palette and syncs the toolbar colour dot.
- * Called by the COLOR button in index.html.
- */
 function toggleColorCycle() {
   _paletteIdx = (_paletteIdx + 1) % PALETTES.length;
   document.getElementById('colorDot').style.background = PALETTES[_paletteIdx].stroke;
