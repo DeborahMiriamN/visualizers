@@ -1,5 +1,6 @@
 'use strict';
 
+//Support for all the gestures
 class GestureMgr { 
   constructor(videoEl, overlayCanvas, onResults) {
     this.videoEl   = videoEl;
