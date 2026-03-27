@@ -7,25 +7,17 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <!-- ─── Loading Screen ─── -->
-  <div id="loading">
+    <div id="loading">
     <div class="ld-title">GESTUREBOARD</div>
     <div class="ld-sub">Real-Time Hand-Controlled Canvas</div>
     <div class="ld-track"><div class="ld-fill" id="ldFill"></div></div>
     <div class="ld-msg" id="ldMsg">Initializing…</div>
   </div>
-
-  <!-- ─── Gesture Flash Overlay ─── -->
-  <div id="gFlash"></div>
-
-  <!-- ─── Watchdog Warning ─── -->
+    <div id="gFlash"></div>  
   <div id="watchdogWarn">⚠ TRACKING LOST — RECONNECTING…</div>
-
-  <!-- ─── Main Drawing Canvas ─── -->
+  
   <canvas id="mainCanvas"></canvas>
-
-  <!-- ─── HUD: Top Left ─── -->
+  
   <div id="hudLeft">
     <div class="hud-brand">GESTURE<span>BOARD</span></div>
     <div id="modeBadge">PASSIVE</div>
@@ -56,8 +48,7 @@
       </div>
     </div>
   </div>
-
-  <!-- ─── Gesture Legend: Top Right ─── -->
+  
   <div id="legend">
     <div class="legend-head">Gestures</div>
     <div class="legend-row">
@@ -85,14 +76,12 @@
       <span class="legend-text"><strong>ROCK-ON</strong>Undo last</span>
     </div>
   </div>
-
-  <!-- ─── Status Bar: Bottom Left ─── -->
+  
   <div id="statusBar">
     <div class="s-dot" id="sDot"></div>
     <span id="sText">INITIALIZING</span>
   </div>
-
- <!-- ─── Camera Preview Panel ─── -->
+ 
 <div id="camWrap">
   <video id="webcam" autoplay muted playsinline></video>
   <canvas id="camCanvas"></canvas>
@@ -108,15 +97,13 @@
     video.style.opacity = hidden ? '1' : '0';
     btn.classList.toggle('cam-eye--off', !hidden);
   }
-
-  // Hide video by default on load
+  
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('webcam').style.opacity = '0';
     document.getElementById('camEye').classList.add('cam-eye--off');
   });
 </script>
-
-  <!-- ─── Bottom Toolbar ─── -->
+  
   <div id="toolbar">
     <button class="tb-btn danger" onclick="App.eraseAll()">✕ CLEAR</button>
     <div class="tb-sep"></div>
@@ -131,13 +118,11 @@
     <div class="tb-sep"></div>
     <button class="tb-btn" onclick="App.save()">⬇ SAVE</button>
   </div>
-
-  <!-- ─── MediaPipe Libraries ─── -->
+  
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-
-  <!-- ─── App Modules (order matters) ─── -->
+  
   <script src="js/config.js"></script>
   <script src="js/palette.js"></script>
   <script src="js/smoother.js"></script>
