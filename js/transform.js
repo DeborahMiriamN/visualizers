@@ -1,5 +1,6 @@
 'use strict';
 
+//Dedicated the coordinate transformation into a separate class
 class TransformMgr {
   constructor() {
     this.scale = 1;
