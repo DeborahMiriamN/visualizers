@@ -1,5 +1,7 @@
 'use strict';
 
+//The entry point
+
 const App = (() => {  
   const drawing = new DrawingMgr(document.getElementById('mainCanvas'));
   const hud     = new HudMgr();
