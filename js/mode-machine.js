@@ -1,5 +1,5 @@
 'use strict';
-
+// Improving the smooth drawing aspect
 class ModeMachine {
   constructor() {
     this._state = 'passive';
